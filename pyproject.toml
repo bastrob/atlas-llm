@@ -1,0 +1,37 @@
+[project]
+name = "atlas-llm"
+version = "0.1.0"
+description = "Research-oriented LLM architecture playground"
+authors = [{ name = "Your Name" }]
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "torch>=2.10.0",
+    "numpy>=1.24",
+    "einops>=0.7.0",
+    "tqdm>=4.66",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "black",
+    "ruff",
+]
+
+viz = [
+    "matplotlib",
+    "seaborn",
+]
+
+experiment = [
+    "wandb",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
