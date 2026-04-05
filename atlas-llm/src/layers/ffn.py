@@ -1,5 +1,6 @@
 import torch.nn as nn
-from activations import silu
+
+from .activations import silu
 
 
 class FeedForward(nn.Module):

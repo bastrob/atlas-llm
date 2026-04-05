@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from layers.attention.base import AttentionBase
+
+from .base import AttentionBase
 
 
 class MHA(AttentionBase):
@@ -24,25 +25,22 @@ class MHA(AttentionBase):
 
         Args:
             x: (B, H, S, HD) tensor
-            cos: (1, 1, S, HD/2) precomputed cosine values
-            sin: (1, 1, S, HD/2) precomputed sine values
+            cos: (1, 1, S, HD) precomputed cosine values
+            sin: (1, 1, S, HD) precomputed sine values
         Returns:
             x with RoPE applied (B, H, S, HD)
         """
         HD = x.shape[-1]
         assert HD % 2 == 0, "Head dimension must be even"
-        x_even = x[..., 0::2] # even indices
-        x_odd = x[..., 1::2] # odd indices
 
-        # Apply rotation formula
-        x_rot_even = x_even * cos - x_odd * sin
-        x_rot_odd = x_even * sin + x_odd * cos
+        x1 = x[..., :HD // 2]  # even indices
+        x2 = x[..., HD // 2:] # odd indices
 
-        # Reinterleave even/odd pairs
-        x = torch.stack([x_rot_even, x_rot_odd], dim=-1) # (B, H, S, HD/2, 2)
-        x = x.reshape(*x.shape[:-2], HD)
+         # Apply the rotary transformation
+        rotated = torch.cat((-x2, x1), dim=-1)
+        x_rotated = (x * cos) + (rotated * sin)
 
-        return x
+        return x_rotated.to(dtype=x.dtype)
 
     def _reshape_heads(self, x):
         """
@@ -53,14 +51,14 @@ class MHA(AttentionBase):
         HD = D // H
         return x.view(B, S, H, HD).transpose(1, 2) # (B, H, S, HD)
     
-    def forward(self, x, mask=None, kv_cache=None, pos_emb=None):
+    def forward(self, x, mask=None, cache=None, pos_emb=None):
         """
         Forward pass of MHA.
 
         Args:
             x: (B, S, D) input embeddings
             mask: optional attention mask (0 = masked)
-            kv_cache: optional dict {'k':..., 'v':...} for autoregressive inference
+            cache: optional dict for autoregressive inference
             pos_emb: tuple (cos, sin) for RoPE
 
         Returns:
@@ -86,9 +84,10 @@ class MHA(AttentionBase):
             new_k = self.apply_rope(new_k, cos, sin)
 
         #4. Use KV cache if provided
-        if kv_cache is not None:
-            k = torch.cat([kv_cache["k"], new_k], dim=2)
-            v = torch.cat([kv_cache["v"], new_v], dim=2)
+        if cache is not None:
+            prev_k, prev_v = cache
+            k = torch.cat([prev_k, new_k], dim=2)
+            v = torch.cat([prev_v, new_v], dim=2)
         else:
             k, v = new_k, new_v
 
@@ -101,7 +100,7 @@ class MHA(AttentionBase):
 
         #7. Apply attention mask if provided
         if mask is not None:
-            attn_logits = attn_logits.masked_fill(mask == 0, float('-inf'))
+            attn_logits = attn_logits.masked_fill(mask.bool(), float('-inf'))
 
         #8. Softmax to get attention weights
         attn_weights = torch.softmax(attn_logits, dim=-1)

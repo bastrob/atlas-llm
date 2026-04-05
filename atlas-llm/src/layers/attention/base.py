@@ -13,7 +13,7 @@ class AttentionBase(nn.Module):
         self.dim = dim
         self.num_heads = num_heads
 
-    def forward(self, x, mask=None, kv_cache=None, pos_emb=None):
+    def forward(self, x, mask=None, cache=None, pos_emb=None):
         """
         Forward pass signature for all attention types.
         Subclasses must implement this.
