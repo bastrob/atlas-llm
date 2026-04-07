@@ -105,13 +105,13 @@ class MHA(AttentionBase):
         #8. Softmax to get attention weights
         attn_weights = torch.softmax(attn_logits, dim=-1)
 
-        #8. Multiply attention weights by values
+        #9. Multiply attention weights by values
         context_vec = torch.matmul(attn_weights, v)
 
-        #9. Merge heads
+        #10. Merge heads
         context_vec = context_vec.transpose(1, 2).contiguous()
         context_vec = context_vec.view(B, S, D)
-        #10. Output linear projection
+        #11. Output linear projection
         context_vec = self.wo(context_vec)
 
         return context_vec, next_cache
