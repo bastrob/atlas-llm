@@ -97,8 +97,8 @@ class GQA(AttentionBase):
         attn_scores = queries @ keys.transpose(2, 3) # (B, H, S, S)
 
         # 8. Apply attention mask if provided
-        if mask:
-            attn_scores = attn_scores.masked_fill(mask.bool(), float('inf'))
+        if mask is not None:
+            attn_scores = attn_scores.masked_fill(mask.bool(), float('-inf'))
 
         # 9. Softmax to get attention weights
         attn_weights = torch.softmax(attn_scores / keys.shape[-1] ** 0.5, dim=-1)

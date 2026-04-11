@@ -41,6 +41,7 @@ class TransformerModel(nn.Module):
         if cache is not None:
             pos_start = self.current_pos
             pos_end = pos_start + num_tokens
+            self.current_pos = pos_end
             mask = torch.triu(
                 torch.ones(pos_end, pos_end, dtype=torch.bool, device=input_embeds.device), diagonal=1
             )[pos_start:pos_end, :pos_end]
@@ -56,14 +57,14 @@ class TransformerModel(nn.Module):
         # Shape (1, 1, num_tokens, num_tokens) to broadcast across batch and heads
         mask = mask[None, None, :, :]
         
-        # --- call RoPE ONCE here ---
+        # call RoPE
         cos, sin = self.rope(pos_start, pos_end)
 
         for i, block in enumerate(self.blocks):
-            blk_cache = cache.get(i) if cache else None
+            blk_cache = cache.get(i) if cache is not None else None
             hidden_states, blk_next_cache = block(hidden_states, mask=mask, cache=blk_cache, pos_emb=(cos, sin))
 
-            if cache:
+            if cache is not None:
                 cache.update(i, blk_next_cache)
         
         # Final normalization
