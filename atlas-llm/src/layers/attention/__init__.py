@@ -1,4 +1,4 @@
+from .gqa import GQA
 from .mha import MHA
-from .rope import RopeEmbedding
 
-__all__ = ["MHA", "RopeEmbedding"]
+__all__ = ["GQA", "MHA"]

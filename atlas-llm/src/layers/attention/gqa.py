@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
 
+from ..norm import RMSNorm
 from .base import AttentionBase
 
 
 class GQA(AttentionBase):
-    def __init__(self, dim, num_heads, num_kv_groups):
+    def __init__(self, dim, num_heads, num_kv_groups, use_qk_norm=False):
         """
         Grouped Query Attention module with optional RoPE and KV cache support.
         """
@@ -21,6 +22,9 @@ class GQA(AttentionBase):
 
         self.wq = nn.Linear(dim, dim, bias=False)
         self.wo = nn.Linear(dim, dim, bias=False)
+
+        self.q_norm = RMSNorm(self.head_dim) if use_qk_norm else None # optional
+        self.k_norm = RMSNorm(self.head_dim) if use_qk_norm else None # optional
     
     def apply_rope(self, x, cos, sin):
         """
@@ -74,6 +78,10 @@ class GQA(AttentionBase):
         keys = keys.view(B, S, self.num_kv_groups, self.head_dim).transpose(1, 2) # (B, G, S, HD)
         values = values.view(B, S, self.num_kv_groups, self.head_dim).transpose(1, 2) # (B, G, S, HD)
 
+        # Optional normalization
+        queries = self.q_norm(queries) if self.q_norm else queries
+        keys = self.k_norm(keys) if self.k_norm else keys
+
         # 3. Apply RoPE to Q and K if provided
         if pos_emb:
             cos, sin = pos_emb
@@ -81,7 +89,7 @@ class GQA(AttentionBase):
             keys = self.apply_rope(keys, cos, sin)
 
         # 4. Use KV cache if provided
-        if cache:
+        if cache is not None:
             prev_k, prev_v = cache
             keys = torch.cat([prev_k, keys], dim=2)
             values = torch.cat([prev_v, values], dim=2)

@@ -2,15 +2,16 @@ import torch
 from src.core import TransformerModel
 from src.layers.utils import KVCache
 
-LLAMA32_CONFIG_MOCK = {
-    "vocab_size": 512,           # Vocabulary size
+LLAMA32_CONFIG_1B = {
+    "vocab_size": 128_256,           # Vocabulary size
     "context_length": 131_072,       # Context length that was used to train the model
-    "emb_dim": 128,                 # Embedding dimension
-    "n_heads": 2,                   # Number of attention heads
-    "n_layers": 1,                  # Number of layers
-    "hidden_dim": 64,              # Size of the intermediate dimension in FeedForward
-    "n_kv_groups": 4,                # Key-Value groups for grouped-query attention
+    "emb_dim": 2048,                 # Embedding dimension
+    "n_heads": 32,                   # Number of attention heads
+    "n_layers": 16,                  # Number of layers
+    "hidden_dim": 8192,              # Size of the intermediate dimension in FeedForward
+    "n_kv_groups": 8,                # Key-Value groups for grouped-query attention
     "rope_base": 500_000.0,          # The base in RoPE's "theta"
+    "rope_type": "llama",            # RoPE type used
     "rope_freq": {                   # RoPE frequency scaling
         "factor": 32.0,
         "low_freq_factor": 1.0,
@@ -19,20 +20,18 @@ LLAMA32_CONFIG_MOCK = {
     }
 }
 
-LLAMA32_CONFIG_1B = {
-    "vocab_size": 128_256,           
-    "context_length": 131_072,      
-    "emb_dim": 2048,                 
-    "n_heads": 32,                   
-    "n_layers": 16,                  
-    "hidden_dim": 8192,              
-    "n_kv_groups": 8,                
-    "rope_base": 500_000.0,         
-    "rope_freq": {                   
-        "low_freq_factor": 1.0,
-        "high_freq_factor": 4.0,
-        "original_context_length": 8192,
-    }
+QWEN_CONFIG_06_B = {
+    "vocab_size": 151_936,           # Vocabulary size
+    "context_length": 40_960,        # Context length that was used to train the model
+    "emb_dim": 1024,                 # Embedding dimension
+    "n_heads": 16,                   # Number of attention heads
+    "n_layers": 28,                  # Number of layers
+    "hidden_dim": 3072,              # Size of the intermediate dimension in FeedForward
+    "head_dim": 128,                 # Size of the heads in GQA
+    "qk_norm": True,                 # Whether to normalize queries and keys in GQA
+    "n_kv_groups": 8,                # Key-Value groups for grouped-query attention
+    "rope_base": 1_000_000.0,        # The base in RoPE's "theta"
+    "rope_type": "qwen",            # RoPE type used
 }
 
 def generate(model: TransformerModel, idx: torch.Tensor, max_new_tokens: int=1, context_size: int | None = None, use_cache: bool=True):
@@ -61,7 +60,7 @@ def generate(model: TransformerModel, idx: torch.Tensor, max_new_tokens: int=1, 
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    llama = TransformerModel(LLAMA32_CONFIG_MOCK)
+    llama = TransformerModel(QWEN_CONFIG_06_B)
     llama = llama.to(device)
     x = torch.LongTensor([[1, 2, 3, 4, 5]])
     x = x.to(device)

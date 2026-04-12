@@ -1,15 +1,16 @@
 import torch
-import torch.nn as nn
+
+from .base import RopeBase
 
 
-class RopeEmbedding(nn.Module):
+class LLamaRopeEmbedding(RopeBase):
     def __init__(self, head_dim, theta_base, context_length, freq_config):
         super().__init__()
 
         self.cos: torch.Tensor
         self.sin: torch.Tensor
 
-        # 1. Calculate theta_i = 1.0 / (base ^ (2i / d))
+        # 1. Compute theta_i = 1.0 / (base ^ (2i / d))
         inv_freq = 1.0 / (theta_base ** (torch.arange(0, head_dim, 2).float() / head_dim))
 
         # Frequency adjustments
@@ -49,9 +50,18 @@ class RopeEmbedding(nn.Module):
         self.register_buffer("cos", cos, persistent=False)
         self.register_buffer("sin", sin, persistent=False)
     
+    @classmethod
+    def from_cfg(cls, cfg):
+        return cls(
+            head_dim=cfg["emb_dim"] // cfg["n_heads"],
+            theta_base=cfg["rope_base"],
+            context_length=cfg["context_length"],
+            freq_config=cfg["rope_freq"]
+            )
+
     def forward(self, pos_start: int, pos_end: int):
         """
-        Returns RoPE embeddings for positions [pos_start, pos_end)
+        Returns RoPE embeddings for positions [pos_start, pos_end]
 
         Output shape:
             cos, sin: (1, 1, S, head_dim)

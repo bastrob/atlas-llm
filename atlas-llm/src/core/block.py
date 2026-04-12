@@ -1,7 +1,7 @@
 
 import torch.nn as nn
 
-from src.layers.attention import MHA
+from src.layers.attention import GQA
 from src.layers.ffn import FeedForward
 from src.layers.norm import RMSNorm
 
@@ -11,7 +11,7 @@ class TransformerBlock(nn.Module):
         super().__init__()
 
         self.attn_norm = RMSNorm(cfg["emb_dim"])
-        self.attn = MHA(cfg["emb_dim"], cfg["n_heads"])
+        self.attn = GQA(cfg["emb_dim"], cfg["n_heads"], cfg["n_kv_groups"], cfg["qk_norm"])
 
         self.ffn_norm =  RMSNorm(cfg["emb_dim"])
         self.ffn = FeedForward(cfg["emb_dim"], cfg["hidden_dim"])

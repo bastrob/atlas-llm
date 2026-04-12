@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from src.layers.attention import RopeEmbedding
+from src.layers.rope import RopeFactory
 from src.layers.norm import RMSNorm
 from src.layers.utils import KVCache
 
@@ -18,12 +18,7 @@ class TransformerModel(nn.Module):
         self.norm = RMSNorm(cfg["emb_dim"])
         self.output = nn.Linear(cfg["emb_dim"], cfg["vocab_size"], bias=False)
     
-        self.rope = RopeEmbedding(
-            head_dim=cfg["emb_dim"] // cfg["n_heads"],
-            theta_base=cfg["rope_base"],
-            context_length=cfg["context_length"],
-            freq_config=cfg["rope_freq"]
-            )
+        self.rope = RopeFactory.build(config=cfg)
         self.current_pos = 0 # Track current position in KV cache
 
 
